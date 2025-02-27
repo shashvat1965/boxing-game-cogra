@@ -1,4 +1,4 @@
-#define  GL_SILENCE_DEPRECATION
+#define GL_SILENCE_DEPRECATION
 #include <GLUT/glut.h>
 #include <iostream>
 #include <fstream>
@@ -10,25 +10,44 @@
 // 1. Data Structure for Body Parts
 //------------------------------------------------------
 struct BodyPart {
-    std::string name;
-    std::string shape;  // "cylinder", "sphere", "cube"
-    float posX, posY, posZ;         // Position
-    float scaleX, scaleY, scaleZ;    // For cylinders: scaleX = radius, scaleY = height; for spheres: use scaleX as radius; for cubes: final dimensions.
-    float colorR, colorG, colorB;    // RGB color
+    std::string name;        // e.g., "body", "head", "rightArmUpper", etc.
+    std::string shape;       // "cylinder", "sphere", or "cube"
+    float posX, posY, posZ;   // Relative position (base model)
+    float scaleX, scaleY, scaleZ; // For cylinders: scaleX = radius, scaleY = height; for spheres: use scaleX as radius; for cubes: dimensions.
+    float colorR, colorG, colorB; // Base color components
 };
 
-std::vector<BodyPart> g_parts;
+std::vector<BodyPart> g_baseParts; // Loaded from file
 
 //------------------------------------------------------
-// 2. Global Variables for Camera and Animation
+// 2. Global Variables for Camera, Selection & Animation
 //------------------------------------------------------
-float camX = 0.0f, camY = 1.0f, camZ = 6.0f;
-float lookX = 0.0f, lookY = 0.0f, lookZ = 0.0f;
+// Camera parameters
+float camX = 0.0f, camY = 2.0f, camZ = 12.0f;
+float lookX = 0.0f, lookY = 1.0f, lookZ = 0.0f;
 
-// Punch animation globals
-float punchAngle = 0.0f;
-bool punching = false;
-bool punchForward = true;
+// Which boxer is selected for punching (1 or 2); 0 = none
+int selectedBoxer = 0;
+
+// For each boxer, we now animate three separate angles for the right arm:
+// Upper arm, forearm, and palm.
+// Boxer 1:
+float punchAngleUpper1 = 0.0f, punchAngleFore1 = 0.0f, punchAnglePalm1 = 0.0f;
+bool punching1 = false;
+bool punchForward1 = true;
+// Boxer 2:
+float punchAngleUpper2 = 0.0f, punchAngleFore2 = 0.0f, punchAnglePalm2 = 0.0f;
+bool punching2 = false;
+bool punchForward2 = true;
+
+// Maximum rotation angles for each limb (in degrees)
+const float maxUpper = 60.0f;
+const float maxFore  = 120.0f;
+const float maxPalm  = 120.0f;
+
+// Hit timers: when > 0, the boxer is tinted red.
+float hitTimer1 = 0.0f;
+float hitTimer2 = 0.0f;
 
 //------------------------------------------------------
 // 3. Shape Drawing Functions
@@ -36,11 +55,11 @@ bool punchForward = true;
 void drawCylinder(float radius, float height) {
     GLUquadric* quad = gluNewQuadric();
     glPushMatrix();
-        glRotatef(-90.0f, 1, 0, 0);  // Align cylinder along Y-axis
+        glRotatef(-90.0f, 1, 0, 0);  // Align along Y-axis
         gluCylinder(quad, radius, radius, height, 20, 20);
-        // Draw bottom cap
+        // Bottom cap
         gluDisk(quad, 0.0, radius, 20, 1);
-        // Draw top cap
+        // Top cap
         glTranslatef(0.0f, 0.0f, height);
         gluDisk(quad, 0.0, radius, 20, 1);
     glPopMatrix();
@@ -59,40 +78,84 @@ void drawCube(float sizeX, float sizeY, float sizeZ) {
 }
 
 //------------------------------------------------------
-// 4. Draw a Single Body Part (with punching for right arm parts)
+// 4. Draw a Single Body Part for a Given Boxer
 //------------------------------------------------------
-void drawPart(const BodyPart& part) {
-    glColor3f(part.colorR, part.colorG, part.colorB);
+// For right arm parts, we apply different rotations if this boxer is selected for punching.
+void drawPartForBoxer(const BodyPart& part, int boxerID) {
+    // If the boxer is hit, override the part's color to red.
+    if ((boxerID == 1 && hitTimer1 > 0.0f) || (boxerID == 2 && hitTimer2 > 0.0f)) {
+        glColor3f(1.0f, 0.0f, 0.0f); // red tint
+    } else {
+        glColor3f(part.colorR, part.colorG, part.colorB);
+    }
+    
     glPushMatrix();
-        // If this part is in the right arm, apply the punching transformation.
-        // We assume the shoulder (pivot) is at (0.5, 1.0, 0).
-        if (part.name == "rightArmUpper" || part.name == "rightArmFore" || part.name == "rightPalm") {
-            // Translate to the pivot point
-            glTranslatef(0.5f, 1.0f, 0.0f);
-            // Apply the punch rotation about the Z-axis
-            glRotatef(-punchAngle, 1.0f, 0.0f, 0.0f);
-            // Translate to the part's relative position from the pivot
-            glTranslatef(part.posX - 0.5f, part.posY - 1.0f, part.posZ);
-        } else {
-            // Otherwise, use the part's absolute position.
-            glTranslatef(part.posX, part.posY, part.posZ);
+    // For right arm parts, if this boxer is the selected one, apply the punching transformation.
+    if ((part.name == "rightArmUpper" || part.name == "rightArmFore" || part.name == "rightPalm") &&
+         (boxerID == selectedBoxer))
+    {
+        // Translate to the shoulder pivot (assumed at (0.5, 1.0, 0) in the base model)
+        glTranslatef(0.5f, 1.0f, 0.0f);
+        // Apply a different rotation for each part:
+        if (part.name == "rightArmUpper") {
+            if (boxerID == 1)
+                glRotatef(-punchAngleUpper1, 1.0f, 0.0f, 0.0f);
+            else if (boxerID == 2)
+                glRotatef(-punchAngleUpper2, 1.0f, 0.0f, 0.0f);
+        } else if (part.name == "rightArmFore") {
+            if (boxerID == 1)
+                glRotatef(-punchAngleFore1, 1.0f, 0.0f, 0.0f);
+            else if (boxerID == 2)
+                glRotatef(-punchAngleFore2, 1.0f, 0.0f, 0.0f);
+        } else if (part.name == "rightPalm") {
+            if (boxerID == 1)
+                glRotatef(-punchAnglePalm1, 1.0f, 0.0f, 0.0f);
+            else if (boxerID == 2)
+                glRotatef(-punchAnglePalm2, 1.0f, 0.0f, 0.0f);
         }
+        // Translate back to the part’s relative position
+        glTranslatef(part.posX - 0.5f, part.posY - 1.0f, part.posZ);
+    } else {
+        glTranslatef(part.posX, part.posY, part.posZ);
+    }
+    
+    // Draw shape based on type
+    if (part.shape == "cylinder") {
+        drawCylinder(part.scaleX, part.scaleY);
+    } else if (part.shape == "sphere") {
+        drawSphere(part.scaleX);
+    } else if (part.shape == "cube") {
+        drawCube(part.scaleX, part.scaleY, part.scaleZ);
+    } else {
+        std::cerr << "Unknown shape: " << part.shape << std::endl;
+    }
+    glPopMatrix();
+}
 
-        // Draw the appropriate shape.
-        if (part.shape == "cylinder") {
-            drawCylinder(part.scaleX, part.scaleY);
-        } else if (part.shape == "sphere") {
-            drawSphere(part.scaleX);  // using scaleX as the radius
-        } else if (part.shape == "cube") {
-            drawCube(part.scaleX, part.scaleY, part.scaleZ);
-        } else {
-            std::cerr << "Unknown shape: " << part.shape << std::endl;
+//------------------------------------------------------
+// 5. Draw a Boxer Given Its ID
+//------------------------------------------------------
+// Position and orient the boxers so they face each other.
+// Boxer 1: placed at (-2,0,0), rotated so base +Z becomes +X.
+// Boxer 2: placed at (2,0,0), rotated so base +Z becomes -X.
+void drawBoxer(int boxerID) {
+    glPushMatrix();
+        if (boxerID == 1) {
+            glTranslatef(0.4f, 0.0f, 0.0f);
+            glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
+        } else if (boxerID == 2) {
+            glTranslatef(-0.4f, 0.0f, 0.0f);
+            glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
+        }
+    
+        for (const auto& part : g_baseParts) {
+            drawPartForBoxer(part, boxerID);
         }
     glPopMatrix();
 }
 
 //------------------------------------------------------
-// 5. Load Boxer Parts from a Text File
+// 6. Load Boxer Base Parts from a Text File
 //------------------------------------------------------
 bool loadBoxerFromFile(const std::string& filename) {
     std::ifstream file(filename);
@@ -100,110 +163,176 @@ bool loadBoxerFromFile(const std::string& filename) {
         std::cerr << "Error: Could not open " << filename << std::endl;
         return false;
     }
-    g_parts.clear();
+    g_baseParts.clear();
     std::string line;
     while (std::getline(file, line)) {
-        // Skip comments or empty lines.
-        if (line.empty() || line[0] == '#') continue;
+        if (line.empty() || line[0]=='#')
+            continue;
         BodyPart part;
         std::istringstream iss(line);
         iss >> part.name >> part.shape 
             >> part.posX >> part.posY >> part.posZ 
             >> part.scaleX >> part.scaleY >> part.scaleZ 
             >> part.colorR >> part.colorG >> part.colorB;
-        if (!iss.fail()) {
-            g_parts.push_back(part);
-        }
+        if (!iss.fail())
+            g_baseParts.push_back(part);
     }
     file.close();
     return true;
 }
 
 //------------------------------------------------------
-// 6. GLUT Callback Functions
+// 7. GLUT Callback Functions
 //------------------------------------------------------
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    // Use the global camera variables
     gluLookAt(camX, camY, camZ,
               lookX, lookY, lookZ,
               0.0, 1.0, 0.0);
     
-    // Draw each body part
-    for (const auto& part : g_parts) {
-        drawPart(part);
-    }
+    // Draw both boxers.
+    drawBoxer(1);
+    drawBoxer(2);
     
     glutSwapBuffers();
 }
 
 void reshape(int w, int h) {
-    if (h == 0) h = 1;
-    glViewport(0, 0, w, h);
+    if (h == 0)
+        h = 1;
+    glViewport(0,0,w,h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(45.0, (float)w/h, 1.0, 100.0);
     glMatrixMode(GL_MODELVIEW);
 }
 
-// Keyboard callback for camera movement and triggering the punch.
+// Keyboard callback: selection, punch trigger, camera movement.
 void keyboard(unsigned char key, int x, int y) {
     switch(key) {
-        case 'p':  // Start punching animation
-            if (!punching) {
-                punching = true;
-                punchForward = true;
+        case '1':
+            selectedBoxer = 1;
+            std::cout << "Boxer 1 selected." << std::endl;
+            break;
+        case '2':
+            selectedBoxer = 2;
+            std::cout << "Boxer 2 selected." << std::endl;
+            break;
+        case 'p':
+            if (selectedBoxer == 1 && !punching1) {
+                punching1 = true;
+                punchForward1 = true;
+            } else if (selectedBoxer == 2 && !punching2) {
+                punching2 = true;
+                punchForward2 = true;
             }
             break;
+        // Camera movement controls
         case 'w': camZ -= 0.5f; break;
         case 's': camZ += 0.5f; break;
         case 'a': camX -= 0.5f; break;
         case 'd': camX += 0.5f; break;
         case 'q': camY += 0.5f; break;
         case 'e': camY -= 0.5f; break;
-        case 27: exit(0); break; // ESC to exit
+        case 27: exit(0); break; // ESC
     }
     glutPostRedisplay();
 }
 
-// Timer function to update the punching animation.
+// Timer callback to update punching animation and hit timers.
 void onTimer(int value) {
-    if (punching) {
-        if (punchForward) {
-            punchAngle += 10.0f;
-            if (punchAngle >= 100.0f) {
-                punchForward = false;
+    // Update Boxer 1 punching animation
+    if (punching1) {
+        if (punchForward1) {
+            if (punchAngleUpper1 < maxUpper)
+                punchAngleUpper1 += 3.0f;
+            if (punchAngleFore1 < maxFore)
+                punchAngleFore1 += 5.0f;
+            if (punchAnglePalm1 < maxPalm)
+                punchAnglePalm1 += 5.0f;
+            // When the upper arm reaches maximum, consider the punch extended.
+            if (punchAngleUpper1 >= maxUpper) {
+                punchForward1 = false;
+                if (hitTimer2 <= 0.0f)
+                    hitTimer2 = 1.0f; // hit Boxer 2
             }
         } else {
-            punchAngle -= 10.0f;
-            if (punchAngle <= 0.0f) {
-                punchAngle = 0.0f;
-                punching = false;
-                punchForward = true;
+            if (punchAngleUpper1 > 0.0f)
+                punchAngleUpper1 -= 3.0f;
+            if (punchAngleFore1 > 0.0f)
+                punchAngleFore1 -= 5.0f;
+            if (punchAnglePalm1 > 0.0f)
+                punchAnglePalm1 -= 5.0f;
+            if (punchAngleUpper1 <= 0.0f) {
+                punchAngleUpper1 = 0.0f;
+                punchAngleFore1 = 0.0f;
+                punchAnglePalm1 = 0.0f;
+                punching1 = false;
+                punchForward1 = true;	
             }
         }
-        glutPostRedisplay();
     }
+    // Update Boxer 2 punching animation
+    if (punching2) {
+        if (punchForward2) {
+            if (punchAngleUpper2 < maxUpper)
+                punchAngleUpper2 += 3.0f;
+            if (punchAngleFore2 < maxFore)
+                punchAngleFore2 += 5.0f;
+            if (punchAnglePalm2 < maxPalm)
+                punchAnglePalm2 += 5.0f;
+            if (punchAngleUpper2 >= maxUpper) {
+                punchForward2 = false;
+                if (hitTimer1 <= 0.0f)
+                    hitTimer1 = 1.0f; // hit Boxer 1
+            }
+        } else {
+            if (punchAngleUpper2 > 0.0f)
+                punchAngleUpper2 -= 3.0f;
+            if (punchAngleFore2 > 0.0f)
+                punchAngleFore2 -= 5.0f;
+            if (punchAnglePalm2 > 0.0f)
+                punchAnglePalm2 -= 5.0f;
+            if (punchAngleUpper2 <= 0.0f) {
+                punchAngleUpper2 = 0.0f;
+                punchAngleFore2 = 0.0f;
+                punchAnglePalm2 = 0.0f;
+                punching2 = false;
+                punchForward2 = true;
+            }
+        }
+    }
+    
+    // Update hit timers (decrement by approx 0.03 sec per timer call)
+    if (hitTimer1 > 0.0f) {
+        hitTimer1 -= 0.03f;
+        if (hitTimer1 < 0.0f) hitTimer1 = 0.0f;
+    }
+    if (hitTimer2 > 0.0f) {
+        hitTimer2 -= 0.03f;
+        if (hitTimer2 < 0.0f) hitTimer2 = 0.0f;
+    }
+    
+    glutPostRedisplay();
     glutTimerFunc(30, onTimer, 0);
 }
 
 //------------------------------------------------------
-// 7. Main Function
+// 8. Main Function
 //------------------------------------------------------
 int main(int argc, char** argv) {
     std::string filename = "boxer.txt";
-    if (argc > 1) {
+    if (argc > 1)
         filename = argv[1];
-    }
-    if (!loadBoxerFromFile(filename)) {
+    
+    if (!loadBoxerFromFile(filename))
         return 1;
-    }
     
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(800, 600);
-    glutCreateWindow("3D Boxer with Punch Animation & Camera Control");
+    glutInitWindowSize(800,600);
+    glutCreateWindow("Two Boxers Facing Each Other – Improved Punch Animation");
     
     glEnable(GL_DEPTH_TEST);
     
