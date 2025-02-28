@@ -269,7 +269,7 @@ void onTimer(int value) {
                 punchAngleFore1 = 0.0f;
                 punchAnglePalm1 = 0.0f;
                 punching1 = false;
-                punchForward1 = true;	
+                punchForward1 = true;
             }
         }
     }
