@@ -1,20 +1,20 @@
 # partName   shape      posX   posY   posZ   scaleX scaleY scaleZ   colorR colorG colorB
 
-body         cylinder   0      0      0      0.25    1.2    1        0      0      1
-head         sphere     0      1.5    0      0.3    0.3    0.3      1      0.8    0.6
+body         cube       0     0.6    0       0.8    1.2    0.3       0.6      0.8    0.9
+head         sphere     0      1.5    0      0.3    0.3    0.3      0.8      0.6    0.4
 
-leftArmUpper cylinder   -0.5   0.8    0      0.1    0.4    1        1      0      0
-leftArmFore  cylinder   -0.5   0.4    0      0.09   0.4    1        1      0      0
-leftPalm     sphere     -0.5   0.35    0      0.1    0.1    0.1      1      1      0
+leftArmUpper cylinder   -0.5   0.8    0      0.1    0.4    1        0.8      0.6    0.4
+leftArmFore  cylinder   -0.5   0.4    0      0.09   0.4    1        0.8      0.6    0.4
+leftPalm     sphere     -0.5   0.35    0      0.1    0.1    0.1      0       0      1
 
-rightArmUpper cylinder  0.5    0.8    0      0.1    0.4    1        1      0      0
-rightArmFore  cylinder  0.5    0.4    0      0.09   0.4    1        1      0      0
-rightPalm     sphere    0.5    0.35    0      0.1    0.1    0.1      1      1      0
+rightArmUpper cylinder  0.5    0.8    0      0.1    0.4    1        0.8      0.6    0.4
+rightArmFore  cylinder  0.5    0.4    0      0.09   0.4    1        0.8      0.6    0.4
+rightPalm     sphere    0.5    0.35    0      0.1    0.1    0.1      0      0      1
 
-leftThigh    cylinder   -0.2   -0.5   0      0.15   0.5    1        0      1      0
-leftForeleg  cylinder   -0.2   -1.0   0      0.14   0.5    1        0      1      0
-leftFoot     cube       -0.2   -1.1   0.1   0.3    0.1    0.4      0.5    0.25   0
+leftThigh    cylinder   -0.2   -0.5   0      0.15   0.5    1        0.0      0.0    1.0
+leftForeleg  cylinder   -0.2   -1.0   0      0.14   0.5    1        0.8      0.6    0.4
+leftFoot     cube       -0.2   -1.1   0.1   0.3    0.1    0.4       0.2      0      0.7
 
-rightThigh   cylinder   0.2    -0.5   0      0.15   0.5    1        0      1      0
-rightForeleg cylinder   0.2    -1.0   0      0.14   0.5    1        0      1      0
-rightFoot    cube       0.2    -1.1   0.1   0.3    0.1    0.4      0.5    0.25   0
+rightThigh   cylinder   0.2    -0.5   0      0.15   0.5    1        0.0      0.0    1.0
+rightForeleg cylinder   0.2    -1.0   0      0.14   0.5    1        0.8      0.6    0.4
+rightFoot    cube       0.2    -1.1   0.1   0.3    0.1    0.4       0.2      0      0.7
