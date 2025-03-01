@@ -10,6 +10,8 @@
 #include <assimp/postprocess.h>
 #include <iostream>
 #include <map>
+#include <png.h>
+#include <vector>
 
 // Camera parameters
 extern float camX;
