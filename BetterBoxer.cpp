@@ -1,10 +1,11 @@
-#define GL_SILENCE_DEPRECATION
-#include <GLUT/glut.h>
+// #define GL_SILENCE_DEPRECATION
+#include "helpers.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <map>
 
 //------------------------------------------------------
 // 1. Data Structure for Body Parts
@@ -18,6 +19,33 @@ struct BodyPart {
 };
 
 std::vector<BodyPart> g_baseParts; // Loaded from file
+
+// Model Variables
+const char* objFilePath = "./boxer_real.obj";
+const aiScene* scene;
+Assimp::Importer importer;
+
+// Model transformation variables
+float modelOffsetX = -0.5f;
+float modelOffsetY = -1.2f;
+float modelOffsetZ = 0.0f;
+float modelRotationX = 0.0f;
+float modelRotationY = 90.0f;
+float modelRotationZ = 0.0f;
+float modelScale = 2.3f;
+
+// Node-specific offset variables
+struct NodeOffset {
+    float x, y, z;
+};
+
+// Define joint pivot offsets for specific nodes
+std::map<std::string, NodeOffset> jointOffsets = {
+    {"upper_arm_L", {0.2f, 0.5f, 0.0f}},
+    {"bicep_L", {0.2f, 0.5f, 0.0f}},
+    {"hand_L", {0.2f, 0.5f, 0.0f}}
+    // Add more node-specific offsets as needed
+};
 
 //------------------------------------------------------
 // 2. Global Variables for Camera, Selection & Animation
@@ -36,7 +64,9 @@ float punchAngleUpper1 = 0.0f, punchAngleFore1 = 0.0f, punchAnglePalm1 = 0.0f;
 bool punching1 = false;
 bool punchForward1 = true;
 // Boxer 2:
-float punchAngleUpper2 = 0.0f, punchAngleFore2 = 0.0f, punchAnglePalm2 = 0.0f;
+float armRotation = 0.0f;   
+float bicepRotation = 0.0f; 
+float handRotation = 0.0f;  
 bool punching2 = false;
 bool punchForward2 = true;
 
@@ -49,18 +79,20 @@ const float maxPalm  = 120.0f;
 float hitTimer1 = 0.0f;
 float hitTimer2 = 0.0f;
 
+void renderNode(aiNode* node);
+
 //------------------------------------------------------
 // 3. Shape Drawing Functions
 //------------------------------------------------------
 void drawCylinder(float radius, float height) {
     GLUquadric* quad = gluNewQuadric();
     glPushMatrix();
-        glRotatef(-90.0f, 1, 0, 0);  // Align along Y-axis
+        customRotatef(-90.0f, 1, 0, 0);  // Align along Y-axis
         gluCylinder(quad, radius, radius, height, 20, 20);
         // Bottom cap
         gluDisk(quad, 0.0, radius, 20, 1);
         // Top cap
-        glTranslatef(0.0f, 0.0f, height);
+        customTranslatef(0.0f, 0.0f, height);
         gluDisk(quad, 0.0, radius, 20, 1);
     glPopMatrix();
     gluDeleteQuadric(quad);
@@ -95,28 +127,22 @@ void drawPartForBoxer(const BodyPart& part, int boxerID) {
          (boxerID == selectedBoxer))
     {
         // Translate to the shoulder pivot (assumed at (0.5, 1.0, 0) in the base model)
-        glTranslatef(0.5f, 1.0f, 0.0f);
+        customTranslatef(0.5f, 1.0f, 0.0f);
         // Apply a different rotation for each part:
         if (part.name == "rightArmUpper") {
             if (boxerID == 1)
-                glRotatef(-punchAngleUpper1, 1.0f, 0.0f, 0.0f);
-            else if (boxerID == 2)
-                glRotatef(-punchAngleUpper2, 1.0f, 0.0f, 0.0f);
+                customRotatef(-punchAngleUpper1, 1.0f, 0.0f, 0.0f);
         } else if (part.name == "rightArmFore") {
             if (boxerID == 1)
-                glRotatef(-punchAngleFore1, 1.0f, 0.0f, 0.0f);
-            else if (boxerID == 2)
-                glRotatef(-punchAngleFore2, 1.0f, 0.0f, 0.0f);
+                customRotatef(-punchAngleFore1, 1.0f, 0.0f, 0.0f);
         } else if (part.name == "rightPalm") {
             if (boxerID == 1)
-                glRotatef(-punchAnglePalm1, 1.0f, 0.0f, 0.0f);
-            else if (boxerID == 2)
-                glRotatef(-punchAnglePalm2, 1.0f, 0.0f, 0.0f);
+                customRotatef(-punchAnglePalm1, 1.0f, 0.0f, 0.0f);
         }
         // Translate back to the part’s relative position
-        glTranslatef(part.posX - 0.5f, part.posY - 1.0f, part.posZ);
+        customTranslatef(part.posX - 0.5f, part.posY - 1.0f, part.posZ);
     } else {
-        glTranslatef(part.posX, part.posY, part.posZ);
+        customTranslatef(part.posX, part.posY, part.posZ);
     }
     
     // Draw shape based on type
@@ -141,11 +167,11 @@ void drawPartForBoxer(const BodyPart& part, int boxerID) {
 void drawBoxer(int boxerID) {
     glPushMatrix();
         if (boxerID == 1) {
-            glTranslatef(0.4f, 0.0f, 0.0f);
-            glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
+            customTranslatef(0.4f, 0.0f, 0.0f);
+            customRotatef(-90.0f, 0.0f, 1.0f, 0.0f);
         } else if (boxerID == 2) {
-            glTranslatef(-0.4f, 0.0f, 0.0f);
-            glRotatef(90.0f, 0.0f, 1.0f, 0.0f);
+            customTranslatef(-0.4f, 0.0f, 0.0f);
+            customRotatef(90.0f, 0.0f, 1.0f, 0.0f);
         }
     
         for (const auto& part : g_baseParts) {
@@ -193,7 +219,20 @@ void display() {
     
     // Draw both boxers.
     drawBoxer(1);
-    drawBoxer(2);
+    // drawBoxer(2);
+    
+    // Apply global model transformations
+    glPushMatrix();
+    customTranslatef(modelOffsetX, modelOffsetY, modelOffsetZ);
+    customRotatef(modelRotationX, 1.0f, 0.0f, 0.0f);
+    customRotatef(modelRotationY, 0.0f, 1.0f, 0.0f);
+    customRotatef(modelRotationZ, 0.0f, 0.0f, 1.0f);
+    glScalef(modelScale, modelScale, modelScale);
+    
+    // Render the model
+    renderNode(scene->mRootNode);
+    
+    glPopMatrix();
     
     glutSwapBuffers();
 }
@@ -276,30 +315,21 @@ void onTimer(int value) {
     // Update Boxer 2 punching animation
     if (punching2) {
         if (punchForward2) {
-            if (punchAngleUpper2 < maxUpper)
-                punchAngleUpper2 += 3.0f;
-            if (punchAngleFore2 < maxFore)
-                punchAngleFore2 += 5.0f;
-            if (punchAnglePalm2 < maxPalm)
-                punchAnglePalm2 += 5.0f;
-            if (punchAngleUpper2 >= maxUpper) {
+            armRotation += 2.0f;
+            bicepRotation += 2.0f;
+            handRotation += 2.0f;
+            if (armRotation >= 90.0f) { // Max forward extension
                 punchForward2 = false;
                 if (hitTimer1 <= 0.0f)
-                    hitTimer1 = 1.0f; // hit Boxer 1
+                    hitTimer1 = 1.0f; // hit Boxer 2
             }
         } else {
-            if (punchAngleUpper2 > 0.0f)
-                punchAngleUpper2 -= 3.0f;
-            if (punchAngleFore2 > 0.0f)
-                punchAngleFore2 -= 5.0f;
-            if (punchAnglePalm2 > 0.0f)
-                punchAnglePalm2 -= 5.0f;
-            if (punchAngleUpper2 <= 0.0f) {
-                punchAngleUpper2 = 0.0f;
-                punchAngleFore2 = 0.0f;
-                punchAnglePalm2 = 0.0f;
-                punching2 = false;
+            armRotation -= 2.0f;
+            bicepRotation -= 2.0f;
+            handRotation -= 2.0f;
+            if (armRotation <= 0.0f) { // Return to starting position
                 punchForward2 = true;
+                punching2 = false;
             }
         }
     }
@@ -316,6 +346,85 @@ void onTimer(int value) {
     
     glutPostRedisplay();
     glutTimerFunc(30, onTimer, 0);
+}
+
+void setNodeColor(const std::string& nodeName) {
+    if (nodeName == "upper_arm_L" || nodeName == "upper_arm_R") glColor3f(1.0f, 0.0f, 0.0f); // Red
+    else if (nodeName == "bicep_L" || nodeName == "bicep_R") glColor3f(0.0f, 1.0f, 0.0f); // Green
+    else if (nodeName == "hand_L" || nodeName == "hand_R") glColor3f(0.0f, 0.0f, 1.0f); // Blue
+    else if (nodeName == "thigh_L" || nodeName == "thigh_R") glColor3f(1.0f, 1.0f, 0.0f); // Yellow
+    else if (nodeName == "shin_L" || nodeName == "shin_R") glColor3f(1.0f, 0.5f, 0.0f); // Orange
+    else if (nodeName == "foot_L" || nodeName == "foot_R") glColor3f(0.5f, 0.0f, 0.5f); // Purple
+    else glColor3f(0.8f, 0.8f, 0.8f); // Default gray
+}
+
+// Model Boxer
+void renderNode(aiNode* node) {
+    std::string nodeName = node->mName.C_Str();
+    NodeOffset offset = {0.0f, 0.0f, 0.0f};
+    
+    // Get node-specific offsets if available
+    if (jointOffsets.find(nodeName) != jointOffsets.end()) {
+        offset = jointOffsets[nodeName];
+    }
+
+    // Rotate from shoulder joint
+    if (nodeName == "upper_arm_L") {
+        glPushMatrix();
+        customTranslatef(offset.x, offset.y, offset.z);  // Move to pivot point
+        customRotatef(-armRotation, 0, 1, 0);
+        customTranslatef(-offset.x, -offset.y, -offset.z);  // Move back
+    }
+
+    // Rotate from elbow joint
+    if (nodeName == "bicep_L") {
+        glPushMatrix();
+        customTranslatef(offset.x, offset.y, offset.z);  // Move to pivot point
+        customRotatef(-bicepRotation, 0, 1, 0);  // Rotate around Y axis
+        customTranslatef(-offset.x, -offset.y, -offset.z);  // Move back
+    }
+
+    // Rotate from wrist joint
+    if (nodeName == "hand_L") {
+        glPushMatrix();
+        customTranslatef(offset.x, offset.y, offset.z);  // Move to pivot point
+        customRotatef(-handRotation, 0, 1, 0);
+        customTranslatef(-offset.x, -offset.y, -offset.z);  // Move back
+    }
+
+    setNodeColor(nodeName); // Apply color
+
+    // Draw mesh
+    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        glBegin(GL_TRIANGLES);
+        for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
+            aiFace face = mesh->mFaces[j];
+            for (unsigned int k = 0; k < face.mNumIndices; k++) {
+                int index = face.mIndices[k];
+                aiVector3D vertex = mesh->mVertices[index];
+                glVertex3f(vertex.x, vertex.y, vertex.z);
+            }
+        }
+        glEnd();
+    }
+
+    // Recursively render children
+    for (unsigned int i = 0; i < node->mNumChildren; i++) {
+        renderNode(node->mChildren[i]);
+    }
+
+    if (nodeName == "upper_arm_L" || nodeName == "bicep_L" || nodeName == "hand_L") {
+        glPopMatrix();
+    }
+}
+
+void loadModel() {
+    scene = importer.ReadFile(objFilePath, aiProcess_Triangulate | aiProcess_FlipUVs);
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error loading OBJ: " << importer.GetErrorString() << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 //------------------------------------------------------
@@ -335,6 +444,8 @@ int main(int argc, char** argv) {
     glutCreateWindow("Two Boxers Facing Each Other – Improved Punch Animation");
     
     glEnable(GL_DEPTH_TEST);
+
+    loadModel();
     
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
