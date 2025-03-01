@@ -1,6 +1,6 @@
-# Boxing Game Cogra
+# Boxing Game : OpenGL | GLUT | Assimp
 
-Welcome to the Boxing Game Cogra project! This project is a 3D boxing game developed using the Cogra framework. The game features realistic boxing mechanics, player animations, and an immersive environment.
+Welcome to the Boxing Game project for the course IS F311: Computer Graphics (BITS Pilani)! This project is a 3D boxing game developed using the Cogra framework. The game features realistic boxing mechanics, player animations, and an immersive environment.
 
 ## Features
 
@@ -47,18 +47,3 @@ To install and run the project, follow these steps:
 During the development of this project, we conducted extensive research on how to render model objects using the Assimp library. Initially, we attempted to use FBX files, which already contain animations. However, this approach proved to be out of the scope of this project and was overly complicated, leading to several hours of wasted effort.
 
 Ultimately, we decided to simplify our approach and focus on rendering static models without pre-defined animations. This allowed us to streamline the development process and achieve our project goals more efficiently.
-
-## Contributing
-
-We welcome contributions to the project! If you would like to contribute, please fork the repository and submit a pull request with your changes.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Acknowledgements
-
-- The Cogra framework for providing the tools necessary to develop this game.
-- The Assimp library for assisting with model rendering.
-
-Thank you for checking out our project!
