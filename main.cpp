@@ -16,9 +16,8 @@ void display() {
     
     drawBackground();
     
-    // Draw both boxers.
     drawBoxer(1);
-    // drawBoxer(2);
+
     
     // Apply global model transformations
     glPushMatrix();
@@ -28,7 +27,6 @@ void display() {
     customRotatef(modelRotationZ, 0.0f, 0.0f, 1.0f);
     glScalef(modelScale, modelScale, modelScale);
     
-    // Render the model
     renderNode(scene->mRootNode);
     
     glPopMatrix();
@@ -80,7 +78,6 @@ void keyboard(unsigned char key, int x, int y) {
 
 // Timer callback to update punching animation and hit timers.
 void onTimer(int value) {
-    // Update Boxer 1 punching animation
     if (punching1) {
         if (punchForward1) {
             if (punchAngleUpper1 < maxUpper)
@@ -89,11 +86,10 @@ void onTimer(int value) {
                 punchAngleFore1 += 5.0f;
             if (punchAnglePalm1 < maxPalm)
                 punchAnglePalm1 += 5.0f;
-            // When the upper arm reaches maximum, consider the punch extended.
             if (punchAngleUpper1 >= maxUpper) {
                 punchForward1 = false;
                 if (hitTimer2 <= 0.0f)
-                    hitTimer2 = 1.0f; // hit Boxer 2
+                    hitTimer2 = 1.0f; 
             }
         } else {
             if (punchAngleUpper1 > 0.0f)
@@ -111,29 +107,28 @@ void onTimer(int value) {
             }
         }
     }
-    // Update Boxer 2 punching animation
+ 
     if (punching2) {
         if (punchForward2) {
             armRotation += 6.0f;
             bicepRotation += 6.0f;
             handRotation += 6.0f;
-            if (armRotation >= 90.0f) { // Max forward extension
+            if (armRotation >= 90.0f) {
                 punchForward2 = false;
                 if (hitTimer1 <= 0.0f)
-                    hitTimer1 = 1.0f; // hit Boxer 2
+                    hitTimer1 = 1.0f;
             }
         } else {
             armRotation -= 6.0f;
             bicepRotation -= 6.0f;
             handRotation -= 6.0f;
-            if (armRotation <= 0.0f) { // Return to starting position
+            if (armRotation <= 0.0f) {
                 punchForward2 = true;
                 punching2 = false;
             }
         }
     }
     
-    // Update hit timers (decrement by approx 0.03 sec per timer call)
     if (hitTimer1 > 0.0f) {
         hitTimer1 -= 0.03f;
         if (hitTimer1 < 0.0f) hitTimer1 = 0.0f;
@@ -154,7 +149,6 @@ bool loadPNGImage(const char* filename) {
         return false;
     }
 
-    // Read header (8 bytes)
     png_byte header[8];
     fread(header, 1, 8, fp);
     if (png_sig_cmp(header, 0, 8)) {
@@ -196,18 +190,15 @@ bool loadPNGImage(const char* filename) {
     png_byte color_type = png_get_color_type(png_ptr, info_ptr);
     png_byte bit_depth  = png_get_bit_depth(png_ptr, info_ptr);
 
-    // Convert palette images to RGB, grayscale to 8-bit, and add alpha if needed.
     if (bit_depth == 16)
         png_set_strip_16(png_ptr);
     
     if (color_type == PNG_COLOR_TYPE_PALETTE)
         png_set_palette_to_rgb(png_ptr);
     
-    // Convert grayscale images to RGB.
     if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
         png_set_gray_to_rgb(png_ptr);
     
-    // Remove alpha channel if present
     if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ||
         color_type == PNG_COLOR_TYPE_GRAY_ALPHA ||
         color_type == PNG_COLOR_TYPE_RGBA)
@@ -227,7 +218,6 @@ bool loadPNGImage(const char* filename) {
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
     fclose(fp);
 
-    // We now assume the image is RGB
     return true;
 }
 
@@ -242,15 +232,14 @@ void setupBackgroundTexture() {
     glBindTexture(GL_TEXTURE_2D, backgroundTexID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    // Note: bgData's row length is bgWidth * 3 (RGB)
+
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bgWidth, bgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, bgData.data());
     
     textureLoaded = true;
 }
 
 //------------------------------------------------------
-// 8. GLUT Callback Functions
+// GLUT Callback Functions
 //------------------------------------------------------
 void drawBackground() {
     if (!textureLoaded)
@@ -289,7 +278,7 @@ void drawBackground() {
 
 
 //------------------------------------------------------
-// 8. Main Function
+// Main Function
 //------------------------------------------------------
 int main(int argc, char** argv) {
     std::string filename = "boxer.txt";

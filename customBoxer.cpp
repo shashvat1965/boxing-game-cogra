@@ -4,20 +4,20 @@
 #include <vector>
 
 //------------------------------------------------------
-// 1. Data Structure for Body Parts
+// Data Structure for Body Parts
 //------------------------------------------------------
 struct BodyPart {
-    std::string name;        // e.g., "body", "head", "rightArmUpper", etc.
+    std::string name;        
     std::string shape;       // "cylinder", "sphere", or "cube"
-    float posX, posY, posZ;   // Relative position (base model)
+    float posX, posY, posZ;   
     float scaleX, scaleY, scaleZ; // For cylinders: scaleX = radius, scaleY = height; for spheres: use scaleX as radius; for cubes: dimensions.
-    float colorR, colorG, colorB; // Base color components
+    float colorR, colorG, colorB; 
 };
 
 std::vector<BodyPart> g_baseParts; // Loaded from file
 
 //------------------------------------------------------
-// 3. Shape Drawing Functions
+// Shape Drawing Functions
 //------------------------------------------------------
 void drawCylinder(float radius, float height) {
     GLUquadric* quad = gluNewQuadric();
@@ -45,7 +45,7 @@ void drawCube(float sizeX, float sizeY, float sizeZ) {
 }
 
 //------------------------------------------------------
-// 4. Draw a Single Body Part for a Given Boxer
+// Draw a Single Body Part for a Given Boxer
 //------------------------------------------------------
 // For right arm parts, we apply different rotations if this boxer is selected for punching.
 void drawPartForBoxer(const BodyPart& part, int boxerID) {
@@ -63,7 +63,6 @@ void drawPartForBoxer(const BodyPart& part, int boxerID) {
     {
         // Translate to the shoulder pivot (assumed at (0.5, 1.0, 0) in the base model)
         customTranslatef(0.5f, 1.0f, 0.0f);
-        // Apply a different rotation for each part:
         if (part.name == "rightArmUpper") {
             if (boxerID == 1)
                 customRotatef(-punchAngleUpper1, 1.0f, 0.0f, 0.0f);
@@ -80,7 +79,6 @@ void drawPartForBoxer(const BodyPart& part, int boxerID) {
         customTranslatef(part.posX, part.posY, part.posZ);
     }
     
-    // Draw shape based on type
     if (part.shape == "cylinder") {
         drawCylinder(part.scaleX, part.scaleY);
     } else if (part.shape == "sphere") {
@@ -94,7 +92,7 @@ void drawPartForBoxer(const BodyPart& part, int boxerID) {
 }
 
 //------------------------------------------------------
-// 5. Draw a Boxer Given Its ID
+// Draw a Boxer Given Its ID
 //------------------------------------------------------
 // Position and orient the boxers so they face each other.
 // Boxer 1: placed at (-2,0,0), rotated so base +Z becomes +X.
@@ -116,7 +114,7 @@ void drawBoxer(int boxerID) {
 }
 
 //------------------------------------------------------
-// 6. Load Boxer Base Parts from a Text File
+// Load Boxer Base Parts from a Text File
 //------------------------------------------------------
 bool loadBoxerFromFile(const std::string& filename) {
     std::ifstream file(filename);

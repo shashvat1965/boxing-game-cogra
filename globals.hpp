@@ -1,5 +1,5 @@
 //------------------------------------------------------
-// 2. Global Variables for Camera, Selection & Animation
+// Global Variables for Camera, Selection & Animation
 //------------------------------------------------------
 #ifndef GLOBALS_HPP
 #define GLOBALS_HPP

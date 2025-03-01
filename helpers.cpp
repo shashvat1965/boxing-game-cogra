@@ -10,12 +10,12 @@ void customRotatef(float angle, float axisX, float axisY, float axisZ) {
 
     // Normalize the axis
     float length = sqrt(axisX * axisX + axisY * axisY + axisZ * axisZ);
-    if (length < 0.0001f) return;  // Avoid division by zero
+    if (length < 0.0001f) return;
     float x = axisX / length;
     float y = axisY / length;
     float z = axisZ / length;
 
-    // Build rotation matrix (column-major order for OpenGL)
+    // Build rotation matrix
     float m[16] = {
         x*x*one_c + c,     y*x*one_c + z*s,  z*x*one_c - y*s,  0.0f,
         x*y*one_c - z*s,   y*y*one_c + c,    z*y*one_c + x*s,  0.0f,
@@ -28,7 +28,7 @@ void customRotatef(float angle, float axisX, float axisY, float axisZ) {
 }
 
 void customTranslatef(float x, float y, float z) {
-    // Create translation matrix in column-major order for OpenGL
+    // Create translation matrix
     float m[16] = {
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
