@@ -22,25 +22,32 @@ The following dependencies are required to run the project:
 To install and run the project, follow these steps:
 
 1. Clone the repository:
-    ```sh
-    git clone https://github.com/yourusername/boxing-game-cogra.git
-    ```
+   ```sh
+   git clone https://github.com/yourusername/boxing-game-cogra.git
+   ```
 2. Navigate to the project directory:
-    ```sh
-    cd boxing-game-cogra
-    ```
+   ```sh
+   cd boxing-game-cogra
+   ```
 3. Install the required dependencies on Ubuntu:
-    ```sh
-    sudo apt-get update
-    sudo apt-get install freeglut3-dev libassimp-dev libpng-dev
-    ```
+   ```sh
+   sudo apt-get update
+   sudo apt-get install freeglut3-dev libassimp-dev libpng-dev
+   ```
 4. Build and run the program using
-    ```sh
-    make # compile the program
-    ./boxing-game-cogra # to run the program
 
-    make run # directly compile and run
-    ```
+   ```sh
+   make # compile the program
+   ./boxing-game-cogra # to run the program
+
+   make run # directly compile and run
+   ```
+
+## How to use
+
+- Use the WASD keys to move the camera.
+- Select a player by clicking <kbd>1</kbd> or <kbd>2</kbd>
+- Punch the other player by clicking <kbd>P</kbd> on your keyboard
 
 ## Research on Model Rendering
 
